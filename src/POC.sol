@@ -339,6 +339,11 @@ contract POC is IUniswapV2Callee {
             pair2_weth_borrow
         );
         usdc_weth_sushi_pair.swap(usdt_out1, amount0Out, address(this), data);
+        emit log_named_decimal_uint(
+            "ETH Profit: ",
+            weth.balanceOf(address(this)),
+            18
+        );
     }
 
     // required by the swap
@@ -404,11 +409,6 @@ contract POC is IUniswapV2Callee {
 
             weth.transfer(address(usdc_weth_sushi_pair), pair1_weth_borrow);
             weth.transfer(address(weth_usdt_sushi_pair), pair2_weth_borrow);
-            emit log_named_decimal_uint(
-                "ETH Profit: ",
-                weth.balanceOf(address(this)),
-                18
-            );
         }
     }
 }
